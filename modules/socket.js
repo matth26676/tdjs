@@ -1508,6 +1508,20 @@ function connection(socket, io) {
         }
     });
 
+    socket.on('pauseGame', () => {
+        let user = users.get(socket.id);
+        if (user) {
+            user.gameIsRunning = false;
+        }
+    });
+
+    socket.on('resumeGame', () => {
+        let user = users.get(socket.id);
+        if (user) {
+            user.gameIsRunning = true;
+        }
+    });
+
     // This handles the update of settings, it checks if the user exists and updates the settings
     socket.on('updateSettings', (settings) => {
         let user = users.get(socket.id);
@@ -1516,6 +1530,36 @@ function connection(socket, io) {
             user.settings = settings;
             console.log(user.settings);
 
+        }
+    });
+
+    socket.on('getLogBook', () => {
+        let user = users.get(socket.id);
+        if (user) {
+            const targetingFunctions = [
+                {
+                    name: 'getEnemies',
+                    description: 'Returns a list of all enemies currently on the map. Example return value: [enemy1, enemy2] Ex: getEnemies()'
+                },
+                {
+                    name: 'inRange',
+                    description: 'Checks if a given enemy is within the tower\'s range. Example return value: true/false Ex: inRange(enemy1)'
+                },
+                {
+                    name: 'findFirst',
+                    description: 'Finds the enemy farthest along the track within range. Example return value: enemy1 Ex: findFirst()'
+                },
+                {
+                    name: 'canShoot',
+                    description: 'Determines if the tower is ready to shoot based on its fire rate. Example return value: true/false Ex: canShoot()'
+                },
+                {
+                    name: 'shoot',
+                    description: 'Fires a projectile at the specified target. Ex: shoot(enemy1)'
+                }
+            ];
+            const logBook = { functions: targetingFunctions };
+            socket.emit('logBookData', logBook);
         }
     });
 
@@ -1536,6 +1580,7 @@ function connection(socket, io) {
             user.currentWave++;
             const waveCopy = JSON.parse(JSON.stringify(waves[user.currentWave]));
             user.waveQueue.push({ wave: waveCopy, userId });
+            socket.emit('tipData', { tip: 'Welcome to the game! Use your towers wisely to defend against the waves of enemies!' });
         }
     })
 

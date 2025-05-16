@@ -247,7 +247,7 @@ function getShopItems(towerList) {
         const item = document.createElement('button');
         item.name = tower.name;
         item.innerHTML = tower.name;
-        const sideLength = towerShop.offsetWidth * 0.499; // Calculate side length based on 50% of the parent width
+        const sideLength = towerShop.offsetWidth * 0.4915; // Calculate side length based on 50% of the parent width
         item.style.width = `${sideLength}px`;
         item.style.height = `${sideLength}px`;
         item.style.backgroundColor = "white";
@@ -279,7 +279,7 @@ function getShopItems(towerList) {
 function resizeShopItems() {
     const items = towerShop.getElementsByClassName('towerShopItem');
     const parentWidth = towerShop.getBoundingClientRect().width; // Get the current width of the parent element
-    const sideLength = parentWidth * 0.499; // Calculate side length based on 50% of the parent width
+    const sideLength = parentWidth * 0.4995; // Calculate side length based on 50% of the parent width
     for (let i = 0; i < items.length; i++) {
         items[i].style.width = `${sideLength}px`;
         items[i].style.height = `${sideLength}px`;
@@ -377,6 +377,61 @@ function adjustAspectRatio() {
             button.style.fontSize = `${programButtons[0].offsetHeight / 3}px`; // Adjust font size based on button height
         });
     }
+
+    // Create overlay divs to cover areas not occupied by the gamePage
+    const createOverlayDiv = (id, styles) => {
+        let overlay = document.getElementById(id);
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = id;
+            document.body.appendChild(overlay);
+        }
+        Object.assign(overlay.style, styles);
+    };
+
+    // Top overlay
+    createOverlayDiv('topOverlay', {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: `${gamePage.offsetTop}px`,
+        backgroundColor: 'black',
+        zIndex: '999',
+    });
+
+    // Bottom overlay
+    createOverlayDiv('bottomOverlay', {
+        position: 'absolute',
+        top: `${gamePage.offsetTop + gamePage.offsetHeight}px`,
+        left: '0',
+        width: '100%',
+        height: `${viewportHeight - (gamePage.offsetTop + gamePage.offsetHeight)}px`,
+        backgroundColor: 'black',
+        zIndex: '999',
+    });
+
+    // Left overlay
+    createOverlayDiv('leftOverlay', {
+        position: 'absolute',
+        top: `${gamePage.offsetTop}px`,
+        left: '0',
+        width: `${gamePage.offsetLeft}px`,
+        height: `${gamePage.offsetHeight}px`,
+        backgroundColor: 'black',
+        zIndex: '999',
+    });
+
+    // Right overlay
+    createOverlayDiv('rightOverlay', {
+        position: 'absolute',
+        top: `${gamePage.offsetTop}px`,
+        left: `${gamePage.offsetLeft + gamePage.offsetWidth}px`,
+        width: `${viewportWidth - (gamePage.offsetLeft + gamePage.offsetWidth)}px`,
+        height: `${gamePage.offsetHeight}px`,
+        backgroundColor: 'black',
+        zIndex: '999',
+    });
 }
 
 window.addEventListener('resize', () => { adjustAspectRatio(); resizeShopItems(); });
@@ -454,6 +509,7 @@ function restartGame() {
 }
 
 function openSettings() {
+    socket.emit('pauseGame');
     const settingsMenu = document.getElementById('settingsMenu');
     settingsMenu.style.display = 'block';
     settingsMenu.style.opacity = '0';
@@ -470,7 +526,9 @@ function openSettings() {
     }, 0);
     const settingsButton = document.getElementById('settingsButton');
     const optionsButton = document.getElementById('optionsButton');
+    const logBookButton = document.getElementById('logBookButton');
     settingsButton.addEventListener('click', () => {
+        socket.emit('resumeGame');
         settingsMenu.style.opacity = '0';
         settingsPage.style.transform = 'translateY(-100%)';
         setTimeout(() => {
@@ -481,6 +539,9 @@ function openSettings() {
     optionsButton.addEventListener('click', () => {
         socket.emit('getSettings');
     })
+    logBookButton.addEventListener('click', () => {
+        socket.emit('getLogBook');
+    });
 }
 
 function runProgram() {
@@ -746,13 +807,35 @@ socket.on('gameData', (data) => {
     }
 });
 
+socket.on('tipData', (data) => {
+    const tipPage = document.getElementById('tipsMenu');
+    tipPage.style.transform = 'translateY(-125%)';
+    tipPage.style.transition = 'transform 0.3s ease-in';
+    setTimeout(() => {
+        tipPage.style.transform = 'translateY(0)';
+        tipPage.style.transition = 'transform 0.3s ease-out';
+    }, 10000); // Adjust the delay as needed
+    tipPage.innerHTML = ''; // Clear existing content
+    const tipText = document.createElement('p');
+    tipText.innerText = data.tip;
+    tipText.style.textAlign = 'center';
+    tipText.style.fontSize = '20px';
+    tipText.style.marginBottom = '20px';
+    tipPage.appendChild(tipText);
+});
+
+
 socket.on('settingsData', (data) => {
     var settings = data
     console.log(settings);
 
+    const optionsPage = document.getElementById('optionsPage');
     const settingsPage = document.getElementById('settingsPage');
+    settingsPage.style.display = 'none';
+    optionsPage.style.display = 'block';
 
-    settingsPage.innerHTML = ''; // Clear existing settings
+
+    optionsPage.innerHTML = ''; // Clear existing settings
 
     Object.keys(settings).forEach(settingKey => {
         const settingContainer = document.createElement('div');
@@ -795,7 +878,7 @@ socket.on('settingsData', (data) => {
         settingSubmitButton.addEventListener('click', () => {
             const newValue = settingInput.type === 'checkbox' ? settingInput.checked : settingInput.value;
             const updatedSettings = {};
-            const settingInputs = settingsPage.querySelectorAll('input');
+            const settingInputs = optionsPage.querySelectorAll('input');
             settingInputs.forEach(input => {
                 const key = input.id;
                 const value = input.type === 'checkbox' ? input.checked : input.value;
@@ -807,39 +890,114 @@ socket.on('settingsData', (data) => {
 
         const returnButton = document.createElement('button');
         returnButton.innerText = 'Back';
+        returnButton.id = 'settingsButton';
         returnButton.style.marginLeft = '10px';
         returnButton.addEventListener('click', () => {
-            const optionsButton = document.createElement('button');
-            optionsButton.innerText = 'Options';
-            optionsButton.style.marginLeft = '10px';
-            optionsButton.addEventListener('click', () => {
-                socket.emit('getSettings');
-            });
-            const settingsButton = document.createElement('button');
-            settingsButton.innerText = 'Return';
-            settingsButton.style.marginLeft = '10px';
-            settingsButton.addEventListener('click', () => {
-                settingsMenu.style.opacity = '0';
-                settingsPage.style.transform = 'translateY(-100%)';
-                setTimeout(() => {
-                    settingsMenu.style.display = 'none';
-                    settingsPage.style.display = 'none';
-                }, 300); // Match the transition duration
-            });
-            settingsPage.innerHTML = ''; // Clear existing settings
-            settingsPage.appendChild(settingsButton);
-            settingsPage.appendChild(optionsButton);
+            optionsPage.style.display = 'none';
+            settingsPage.style.display = 'block';
         });
 
 
-        settingContainer.appendChild(settingLabel);
-        settingContainer.appendChild(settingInput);
         settingContainer.appendChild(settingResetButton);
         settingContainer.appendChild(settingSubmitButton);
         settingContainer.appendChild(returnButton);
-        settingsPage.appendChild(settingContainer);
+        settingLabel.appendChild(settingInput);
+        settingContainer.appendChild(settingLabel);
+        optionsPage.appendChild(settingContainer);
     });
 });
+
+socket.on('logBookData', (data) => {
+    const logBookPage = document.getElementById('logBookPage');
+    const settingsPage = document.getElementById('settingsPage');
+    settingsPage.style.display = 'none';
+    logBookPage.style.display = 'block';
+    logBookPage.innerHTML = ''; // Clear existing content
+
+    // Create a title for the log book
+    const title = document.createElement('h1');
+    title.innerText = 'Log Book';
+    title.style.textAlign = 'center';
+    logBookPage.appendChild(title);
+
+    // Section for functions
+    const functionsSection = document.createElement('div');
+    const functionsTitle = document.createElement('h2');
+    functionsTitle.innerText = 'Functions';
+    functionsSection.appendChild(functionsTitle);
+
+    if (data.functions && data.functions.length > 0) {
+        data.functions.forEach(func => {
+            const funcContainer = document.createElement('div');
+            funcContainer.style.marginBottom = '10px';
+
+            const funcName = document.createElement('h3');
+            funcName.innerText = func.name;
+            funcContainer.appendChild(funcName);
+
+            const funcDescription = document.createElement('p');
+            funcDescription.innerText = func.description;
+            funcContainer.appendChild(funcDescription);
+
+            functionsSection.appendChild(funcContainer);
+        });
+    } else {
+        const noFunctionsMessage = document.createElement('p');
+        noFunctionsMessage.innerText = 'No functions available.';
+        functionsSection.appendChild(noFunctionsMessage);
+    }
+
+    logBookPage.appendChild(functionsSection);
+
+    // Section for enemies
+    const enemiesSection = document.createElement('div');
+    const enemiesTitle = document.createElement('h2');
+    enemiesTitle.innerText = 'Enemies';
+    enemiesSection.appendChild(enemiesTitle);
+
+    if (data.enemies && data.enemies.length > 0) {
+        data.enemies.forEach(enemy => {
+            const enemyContainer = document.createElement('div');
+            enemyContainer.style.marginBottom = '10px';
+
+            const enemyName = document.createElement('h3');
+            enemyName.innerText = enemy.name;
+            enemyContainer.appendChild(enemyName);
+
+            const enemyDescription = document.createElement('p');
+            enemyDescription.innerText = enemy.description;
+            enemyContainer.appendChild(enemyDescription);
+
+            const enemyImage = new Image();
+            enemyImage.src = enemy.imagePath;
+            enemyImage.alt = enemy.name;
+            enemyImage.style.width = '100px';
+            enemyImage.style.height = '100px';
+            enemyContainer.appendChild(enemyImage);
+
+            enemiesSection.appendChild(enemyContainer);
+        });
+    } else {
+        const noEnemiesMessage = document.createElement('p');
+        noEnemiesMessage.innerText = 'No enemies encountered yet.';
+        enemiesSection.appendChild(noEnemiesMessage);
+    }
+
+    logBookPage.appendChild(enemiesSection);
+
+    // Back button to return to settings
+    const backButton = document.createElement('button');
+    backButton.innerText = 'Back';
+    backButton.style.marginTop = '20px';
+    backButton.id = 'settingsButton';
+    backButton.addEventListener('click', () => {
+        logBookPage.style.display = 'none';
+        settingsPage.style.display = 'block';
+    });
+
+    logBookPage.appendChild(backButton);
+});
+
 
 // Main socket event handler
 socket.on('towerSelected', (data) => {
