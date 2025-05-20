@@ -128,6 +128,17 @@ function drawEnemy(enemy) {
         ctx.arc(x * spacing + spacing / 2, y * spacing + spacing / 2, size / 2, 0, 2 * Math.PI);
         ctx.fill();
     }
+    if (enemy.statuses) {
+        for (const status of enemy.statuses) {
+            if (status.type === 'poison') {
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.5)'; // Green for poison
+            }
+            ctx.beginPath();
+            ctx.arc(x * spacing + spacing / 2, y * spacing + spacing / 2, size / 2, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+    }
 
 };
 
@@ -192,11 +203,20 @@ function drawPreviewTower() {
 }
 
 function drawProjectile(projectile) {
-    const { x, y, color, size } = projectile;
+    const { x, y, color, size, special, AoESize } = projectile;
+    console.log(projectile);
+    
     ctx.fillStyle = color; // Use the projectile's color
     ctx.beginPath();
-    ctx.arc(x * spacing + spacing / 2, y * spacing + spacing / 2, 20 / 2, 0, 2 * Math.PI); // Draw a circle
+    ctx.arc(x * spacing + spacing / 2, y * spacing + spacing / 2, size / 2, 0, 2 * Math.PI);
     ctx.fill();
+    
+    if (special == 'AoE' && AoESize > 0) {
+        ctx.fillStyle = `rgba(0, 0, 255, 0.5)`; // Lighter variant of the projectile's color
+        ctx.beginPath();
+        ctx.arc(x * spacing + spacing / 2, y * spacing + spacing / 2, AoESize, 0, 2 * Math.PI);
+        ctx.fill();
+    }
 }
 
 function handleMouseMove(event) {
@@ -247,7 +267,7 @@ function getShopItems(towerList) {
         const item = document.createElement('button');
         item.name = tower.name;
         item.innerHTML = tower.name;
-        const sideLength = towerShop.offsetWidth * 0.4915; // Calculate side length based on 50% of the parent width
+        const sideLength = towerShop.offsetWidth * 0.468; // Calculate side length based on 50% of the parent width
         item.style.width = `${sideLength}px`;
         item.style.height = `${sideLength}px`;
         item.style.backgroundColor = "white";
@@ -369,13 +389,12 @@ function adjustAspectRatio() {
         programBox.style.width = '100%';
     }
 
-    const programButtons = towerMenu.querySelectorAll('.programButton');
-    if (programButtons) {
-        programButtons.forEach(button => {
-            button.style.height = `${towerMenu.offsetHeight * 0.04}px`; // Set button height to 8% of towerMenu height
-            button.style.width = `${programMenu.offsetWidth * 0.4}px`; // Set button width to 40% of programMenu width
-            button.style.fontSize = `${programButtons[0].offsetHeight / 3}px`; // Adjust font size based on button height
-        });
+    // Resize sell button
+    const sellButton = document.getElementById('sellButton');
+    if (sellButton) {
+        sellButton.style.width = `${towerMenu.offsetWidth * 0.5}px`; // Set width to 40% of towerMenu width
+        sellButton.style.height = `${towerMenu.offsetHeight * 0.05}px`; // Set height to 10% of towerMenu height
+        sellButton.style.fontSize = `${sellButton.offsetHeight / 3}px`; // Adjust font size based on button height
     }
 
     // Create overlay divs to cover areas not occupied by the gamePage
@@ -438,6 +457,9 @@ window.addEventListener('resize', () => { adjustAspectRatio(); resizeShopItems()
 window.addEventListener('load', adjustAspectRatio);
 
 function drawGame(grid, rows, cols, enemies, towers, projectiles, baseHealth, money, wave) {
+    const canvasWidth = gameBoard.width;
+    const canvasHeight = gameBoard.height;
+
     // Clear the canvas
     ctx.clearRect(0, 0, gameBoard.width, gameBoard.height);
 
@@ -481,27 +503,29 @@ function drawGame(grid, rows, cols, enemies, towers, projectiles, baseHealth, mo
 
     // Draw game data (baseHealth, money, wave) on the canvas
     ctx.fillStyle = 'white';
-    ctx.font = `${64 * ratio}px Arial`; // Scale font size using the canvas ratio
+    ctx.font = `${72 * ratio}px Arial`; // Scale font size using the canvas ratio
     ctx.textAlign = 'left';
 
     // Display the health icon
     if (!healthIcon.loaded) {
-        ctx.drawImage(healthIcon, 10, 6, 32, 32);
+        ctx.drawImage(healthIcon, canvasWidth / 50, canvasHeight * 0.0025, 55, 55);
     }
     // Display the base health value next to the image
-    ctx.fillText(`${baseHealth}`, 40, 25); // Adjust the position to align with the image
+    ctx.fillText(`${baseHealth}`, canvasWidth * 0.065, canvasHeight * 0.055); // Adjust the position to align with the image
 
     // Display money icon
     if (!bitpogIcon.loaded) {
-        ctx.drawImage(bitpogIcon, 66, 10, 20, 20);
+        ctx.drawImage(bitpogIcon, canvasWidth / 8, canvasHeight * 0.018, 32, 32);
     }
 
     // Display money
-    ctx.fillText(`${money}`, 90, 25);
+    ctx.fillText(`${money}`, canvasWidth * 0.16, canvasHeight * 0.055); // Adjust the position to align with the image
 
     // Display wave
     const waveLength = (parseInt(wave) + 1).toString().length;
-    ctx.fillText(`Wave: ${parseInt(wave) + 1} / 10`, 930 - (waveLength * 10), 20);
+    const waveTextWidth = ctx.measureText(`Wave: ${parseInt(wave) + 1} / 10`).width;
+    const waveTextX = canvasWidth - waveTextWidth - canvasWidth * 0.05; // Position it with some padding from the right
+    ctx.fillText(`Wave: ${parseInt(wave) + 1} / 10`, waveTextX, canvasHeight * 0.045); // Adjust the position to align with the image
 }
 
 function restartGame() {
@@ -601,10 +625,12 @@ function updateToolbarButtons(buttons) {
 }
 
 // Helper function to update upgrade buttons
-function updateUpgradeButton(pathIndex, upgradeNameId, upgradePriceId, upgradeButtonId, data) {
+function updateUpgradeButton(pathIndex, upgradeNameId, upgradePriceId, upgradeButtonId, upgradeInfoId, data) {
     const upgradeName = document.getElementById(upgradeNameId);
     const upgradePrice = document.getElementById(upgradePriceId);
     const upgradeButton = document.getElementById(upgradeButtonId);
+    const upgradeInfo = document.getElementById(upgradeInfoId);
+    const descriptionBox = document.getElementById('descriptionBox');
 
     const pickedPaths = selectedTower.upgradePath.filter(level => level > 0).length;
     const hasPrimaryMaxUpgrade = selectedTower.upgradePath.some(level => level >= PRIMARY_MAX_UPGRADE_LEVEL);
@@ -612,25 +638,46 @@ function updateUpgradeButton(pathIndex, upgradeNameId, upgradePriceId, upgradeBu
     if (selectedTower.upgradePath[pathIndex] >= PRIMARY_MAX_UPGRADE_LEVEL) {
         upgradeName.innerText = 'Max Upgrade Reached';
         upgradePrice.innerText = '';
+        upgradeInfo.innerText = '';
         upgradeButton.onclick = null;
         upgradeName.style.display = 'block';
     } else if (pickedPaths >= 2 && selectedTower.upgradePath[pathIndex] === 0) {
         upgradeName.innerText = 'Upgrade Unavailable';
         upgradePrice.innerText = '';
+        upgradeInfo.innerText = '';
         upgradeButton.onclick = null;
         upgradeName.style.display = 'block';
     } else if (selectedTower.upgradePath[pathIndex] >= SECONDARY_MAX_UPGRADE_LEVEL && hasPrimaryMaxUpgrade) {
         upgradeName.innerText = 'Max Upgrade Reached (Secondary)';
         upgradePrice.innerText = '';
+        upgradeInfo.innerText = '';
         upgradeButton.onclick = null;
         upgradeName.style.display = 'block';
     } else {
         const upgradeData = data.upgrades[`path${pathIndex + 1}`][selectedTower.upgradePath[pathIndex]];
         upgradeName.innerText = upgradeData.name;
         upgradePrice.innerText = `${upgradeData.price} Bitpogs`;
+
+        upgradeInfo.onmouseover = () => {
+            descriptionBox.innerText = upgradeData.description;
+            descriptionBox.style.display = 'block'; // Ensure the element is visible
+            descriptionBox.style.transition = 'opacity 0.3s ease-in-out'; // Define the transition
+            descriptionBox.style.opacity = '0.9'; // Gradually fade in
+        };
+
+        upgradeInfo.onmouseout = () => {
+            descriptionBox.style.opacity = '0'; // Gradually fade out
+            descriptionBox.addEventListener('transitionend', function handleTransitionEnd() {
+                descriptionBox.style.display = 'none'; // Hide the element after the transition
+                descriptionBox.removeEventListener('transitionend', handleTransitionEnd); // Remove the event listener
+            });
+        };
         upgradeButton.onclick = () => upgradeTower(selectedTower.index, pathIndex);
         upgradeName.style.display = 'block';
     }
+    // Adjust font size to fit the container
+    const containerWidth = upgradeButton.offsetWidth;
+    upgradeButton.style.fontSize = `${containerWidth / 8}px`; // Set font size relative to button width
 }
 
 // Helper function to update the program menu
@@ -817,7 +864,7 @@ socket.on('tipData', (data) => {
     }, 10000); // Adjust the delay as needed
     tipPage.innerHTML = ''; // Clear existing content
     const tipText = document.createElement('p');
-    tipText.innerText = data.tip;
+    tipText.innerText = data;
     tipText.style.textAlign = 'center';
     tipText.style.fontSize = '20px';
     tipText.style.marginBottom = '20px';
@@ -861,50 +908,50 @@ socket.on('settingsData', (data) => {
             socket.emit('updateSetting', { key: settingKey, value: newValue });
         });
 
-        const settingResetButton = document.createElement('button');
-        settingResetButton.innerText = 'Reset';
-        settingResetButton.style.marginLeft = '10px';
-        settingResetButton.addEventListener('click', () => {
-            socket.emit('resetSetting', settingKey);
-            settingInput.value = settings[settingKey];
-            if (typeof settings[settingKey] === 'boolean') {
-                settingInput.checked = settings[settingKey];
-            }
-        });
-
-        const settingSubmitButton = document.createElement('button');
-        settingSubmitButton.innerText = 'Save Settings';
-        settingSubmitButton.style.marginLeft = '10px';
-        settingSubmitButton.addEventListener('click', () => {
-            const newValue = settingInput.type === 'checkbox' ? settingInput.checked : settingInput.value;
-            const updatedSettings = {};
-            const settingInputs = optionsPage.querySelectorAll('input');
-            settingInputs.forEach(input => {
-                const key = input.id;
-                const value = input.type === 'checkbox' ? input.checked : input.value;
-                updatedSettings[key] = value;
-            });
-            socket.emit('updateSettings', updatedSettings);
-        });
-
-
-        const returnButton = document.createElement('button');
-        returnButton.innerText = 'Back';
-        returnButton.id = 'settingsButton';
-        returnButton.style.marginLeft = '10px';
-        returnButton.addEventListener('click', () => {
-            optionsPage.style.display = 'none';
-            settingsPage.style.display = 'block';
-        });
-
-
-        settingContainer.appendChild(settingResetButton);
-        settingContainer.appendChild(settingSubmitButton);
-        settingContainer.appendChild(returnButton);
         settingLabel.appendChild(settingInput);
         settingContainer.appendChild(settingLabel);
         optionsPage.appendChild(settingContainer);
     });
+    const settingResetButton = document.createElement('button');
+    settingResetButton.innerText = 'Reset';
+    settingResetButton.style.marginLeft = '10px';
+    settingResetButton.addEventListener('click', () => {
+        socket.emit('resetSetting', settingKey);
+        settingInput.value = settings[settingKey];
+        if (typeof settings[settingKey] === 'boolean') {
+            settingInput.checked = settings[settingKey];
+        }
+    });
+
+    const settingSubmitButton = document.createElement('button');
+    settingSubmitButton.innerText = 'Save Settings';
+    settingSubmitButton.style.marginLeft = '10px';
+    settingSubmitButton.addEventListener('click', () => {
+        const newValue = settingInput.type === 'checkbox' ? settingInput.checked : settingInput.value;
+        const updatedSettings = {};
+        const settingInputs = optionsPage.querySelectorAll('input');
+        settingInputs.forEach(input => {
+            const key = input.id;
+            const value = input.type === 'checkbox' ? input.checked : input.value;
+            updatedSettings[key] = value;
+        });
+        socket.emit('updateSettings', updatedSettings);
+    });
+
+
+    const returnButton = document.createElement('button');
+    returnButton.innerText = 'Back';
+    returnButton.id = 'settingsButton';
+    returnButton.style.marginLeft = '10px';
+    returnButton.addEventListener('click', () => {
+        optionsPage.style.display = 'none';
+        settingsPage.style.display = 'block';
+    });
+
+
+    optionsPage.appendChild(settingResetButton);
+    optionsPage.appendChild(settingSubmitButton);
+    optionsPage.appendChild(returnButton);
 });
 
 socket.on('logBookData', (data) => {
@@ -1015,13 +1062,16 @@ socket.on('towerSelected', (data) => {
             document.getElementById('towerFireRate').innerText = `Fire Rate: ${selectedTower.fireRate}`;
 
             // Update upgrade buttons
-            updateUpgradeButton(0, 'upgradeName1', 'upgradePrice1', 'upgradeButton1', data);
-            updateUpgradeButton(1, 'upgradeName2', 'upgradePrice2', 'upgradeButton2', data);
-            updateUpgradeButton(2, 'upgradeName3', 'upgradePrice3', 'upgradeButton3', data);
-            updateUpgradeButton(3, 'upgradeName4', 'upgradePrice4', 'upgradeButton4', data);
+            updateUpgradeButton(0, 'upgradeName1', 'upgradePrice1', 'upgradeButton1', 'upgradeInfo1', data);
+            updateUpgradeButton(1, 'upgradeName2', 'upgradePrice2', 'upgradeButton2', 'upgradeInfo2', data);
 
             // Update the program menu
             updateProgramMenu(settings, functions);
+
+            // Update the sell button
+            const sellButton = document.getElementById('sellButton');
+            sellButton.innerText = `Sell: ${selectedTower.sellPrice} Bitpogs`;
+
 
             // Show the tower menu
             towerMenu.style.transition = 'transform 0.3s ease-in';

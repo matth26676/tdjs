@@ -1,5 +1,6 @@
 const vm = require('vm') // vm is a built-in Node.js module that provides a way to execute JavaScript code in a sandboxed environment, read the README for more info
 const Blockly = require('blockly'); // Blockly is a library for creating visual programming environments, read the README for more info
+const { log } = require('console');
 const frameRate = 60; // The number of frames per second for the game
 // The Pathpoints are the points that the enemies will follow, they are in the format of { y: <y>, x: <x> } where y is the vertical position and x is the horizontal position
 const pathPoint = [{ y: 2, x: 0 }, { y: 2, x: 8 }, { y: 12, x: 8 }, { y: 12, x: 16 }, { y: 2, x: 16 }, { y: 2, x: 24 }, { y: 18, x: 24 }, { y: 18, x: 31 }];
@@ -12,49 +13,78 @@ var ticks = 0; // Variable to keep track of the game ticks
 
 // use the format of { enemyType: '<enemy name>', amount: <integer>, spawnInterval: <integer in game ticks, use framrate to determine frames per second>, wait: <integer in game ticks, use framrate to determine frames per second> } inside of a list inside the waves list to make a section of a wave
 waves = [
-    [
-        { enemyType: 'skeleton', amount: 10, spawnInterval: 5, wait: 0 },
-        { enemyType: 'trickster', amount: 3, spawnInterval: 30, wait: 0 }
-    ],
-    [
-        { enemyType: 'sprinter', amount: 5, spawnInterval: 60, wait: 0 }
-    ],
-    [
-        { enemyType: 'normal', amount: 5, spawnInterval: 60, wait: 0 },
-        { enemyType: 'fast', amount: 3, spawnInterval: 30, wait: 300 }
-    ],
-    [
-        { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
-        { enemyType: 'fast', amount: 5, spawnInterval: 24, wait: 300 }
-    ],
-    [
-        { enemyType: 'normal', amount: 15, spawnInterval: 42, wait: 0 },
-        { enemyType: 'normal', amount: 10, spawnInterval: 30, wait: 300 },
-        { enemyType: 'normal', amount: 5, spawnInterval: 18, wait: 600 }
-    ],
-    [
-        { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
-        { enemyType: 'fast', amount: 5, spawnInterval: 24, wait: 300 },
-        { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 600 }
-    ],
-    [
-        { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
-        { enemyType: 'slow', amount: 5, spawnInterval: 72, wait: 300 }
-    ],
-    [
-        { enemyType: 'fast', amount: 10, spawnInterval: 30, wait: 0 },
-        { enemyType: 'slow', amount: 5, spawnInterval: 60, wait: 300 }
-    ],
-    [
-        { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
-        { enemyType: 'fast', amount: 5, spawnInterval: 24, wait: 300 },
-        { enemyType: 'slow', amount: 3, spawnInterval: 72, wait: 600 }
-    ],
-    [
-        { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
-        { enemyType: 'boss', amount: 1, spawnInterval: 0, wait: 528 }
-    ]
-
+    {
+        enemies: [
+            { enemyType: 'skeleton', amount: 10, spawnInterval: 5, wait: 0 },
+            { enemyType: 'trickster', amount: 3, spawnInterval: 30, wait: 0 }
+        ],
+        tip: "Use towers strategically to cover the path effectively."
+    },
+    {
+        enemies: [
+            { enemyType: 'sprinter', amount: 5, spawnInterval: 60, wait: 0 }
+        ],
+        tip: "Upgrade your towers to handle stronger enemies."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 5, spawnInterval: 60, wait: 0 },
+            { enemyType: 'fast', amount: 3, spawnInterval: 30, wait: 300 }
+        ],
+        tip: "Focus on slowing down fast enemies to give your towers more time to attack."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
+            { enemyType: 'fast', amount: 5, spawnInterval: 24, wait: 300 }
+        ],
+        tip: "Save money for powerful upgrades or new towers."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 15, spawnInterval: 42, wait: 0 },
+            { enemyType: 'normal', amount: 10, spawnInterval: 30, wait: 300 },
+            { enemyType: 'normal', amount: 5, spawnInterval: 18, wait: 600 }
+        ],
+        tip: "Plan ahead for boss waves by upgrading damage-dealing towers."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
+            { enemyType: 'fast', amount: 5, spawnInterval: 24, wait: 300 },
+            { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 600 }
+        ],
+        tip: "Use a mix of tower types to handle different enemy types."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
+            { enemyType: 'slow', amount: 5, spawnInterval: 72, wait: 300 }
+        ],
+        tip: "Place towers near corners to maximize their attack range."
+    },
+    {
+        enemies: [
+            { enemyType: 'fast', amount: 10, spawnInterval: 30, wait: 0 },
+            { enemyType: 'slow', amount: 5, spawnInterval: 60, wait: 300 }
+        ],
+        tip: "Don't forget to use status-effect towers like SlowTower or PoisonTower."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
+            { enemyType: 'fast', amount: 5, spawnInterval: 24, wait: 300 },
+            { enemyType: 'slow', amount: 3, spawnInterval: 72, wait: 600 }
+        ],
+        tip: "Keep an eye on your health and prioritize defense if needed."
+    },
+    {
+        enemies: [
+            { enemyType: 'normal', amount: 10, spawnInterval: 48, wait: 0 },
+            { enemyType: 'boss', amount: 1, spawnInterval: 0, wait: 528 }
+        ],
+        tip: "Boss enemies are tough—make sure you're prepared!"
+    }
 ];
 
 
@@ -62,156 +92,112 @@ waves = [
 const upgradePaths = {
     Basic: {
         path1: [
-            { name: 'Rapid Reload', range: 0, damage: 1, fireRate: 1, price: 15 },
-            { name: 'Focused Fire', range: 0, damage: 2, fireRate: 1.5, price: 30 },
-            { name: 'Overdrive', range: 0, damage: 3, fireRate: 2, price: 50 }
+            { name: 'Rapid Reload', range: 0, damage: 1, fireRate: 1, price: 15, description: 'Increases fire rate slightly for faster attacks.' },
+            { name: 'Focused Fire', range: 0, damage: 2, fireRate: 1.5, price: 30, description: 'Enhances fire rate and damage for more precise attacks.' },
+            { name: 'Overdrive', range: 0, damage: 3, fireRate: 2, price: 50, description: 'Maximizes fire rate and damage for rapid destruction.' }
         ],
         path2: [
-            { name: 'Extended Barrel', range: 2, damage: 0, fireRate: 0, price: 20 },
-            { name: 'Precision Targeting', range: 3, damage: 1, fireRate: 0, price: 40 },
-            { name: 'Eagle Eye', range: 4, damage: 2, fireRate: 0, price: 60 }
+            { name: 'Extended Barrel', range: 2, damage: 0, fireRate: 0, price: 20, description: 'Increases range to target enemies from farther away.' },
+            { name: 'Precision Targeting', range: 3, damage: 1, fireRate: 0, price: 40, description: 'Improves range and adds slight damage boost.' },
+            { name: 'Eagle Eye', range: 4, damage: 2, fireRate: 0, price: 60, description: 'Maximizes range and damage for long-distance precision.' }
         ],
         path3: [
-            { name: 'Armor Piercing', range: 0, damage: 2, fireRate: 0, price: 25 },
-            { name: 'Heavy Rounds', range: 0, damage: 4, fireRate: 0, price: 50 },
-            { name: 'Penetrating Shots', range: 0, damage: 6, fireRate: 0, price: 75 }
+            { name: 'Armor Piercing', range: 0, damage: 2, fireRate: 0, price: 25, description: 'Increases damage to penetrate enemy armor.' },
+            { name: 'Heavy Rounds', range: 0, damage: 4, fireRate: 0, price: 50, description: 'Boosts damage significantly for tougher enemies.' },
+            { name: 'Penetrating Shots', range: 0, damage: 6, fireRate: 0, price: 75, description: 'Maximizes damage to deal with heavily armored foes.' }
         ],
         path4: [
-            { name: 'Quick Calibration', range: 0, damage: 0, fireRate: 1, price: 20 },
-            { name: 'Advanced Mechanics', range: 0, damage: 1, fireRate: 1.5, price: 40 },
-            { name: 'Precision Engineering', range: 0, damage: 2, fireRate: 2, price: 60 }
+            { name: 'Quick Calibration', range: 0, damage: 0, fireRate: 1, price: 20, description: 'Improves fire rate for quicker attacks.' },
+            { name: 'Advanced Mechanics', range: 0, damage: 1, fireRate: 1.5, price: 40, description: 'Enhances fire rate and damage for better efficiency.' },
+            { name: 'Precision Engineering', range: 0, damage: 2, fireRate: 2, price: 60, description: 'Maximizes fire rate and damage for optimal performance.' }
         ]
     },
     Sniper: {
         path1: [
-            { name: 'Deadly Precision', range: 2, damage: 5, fireRate: -0.5, price: 50 },
-            { name: 'Lethal Aim', range: 3, damage: 10, fireRate: -1, price: 100 },
-            { name: 'One Shot, One Kill', range: 4, damage: 20, fireRate: -1.5, price: 200 }
+            { name: 'Deadly Precision', range: 2, damage: 5, fireRate: -0.5, price: 50, description: 'Increases range and damage for precise long-range shots.' },
+            { name: 'Lethal Aim', range: 3, damage: 10, fireRate: -1, price: 100, description: 'Boosts range and damage significantly for lethal accuracy.' },
+            { name: 'One Shot, One Kill', range: 4, damage: 20, fireRate: -1.5, price: 200, description: 'Maximizes range and damage for devastating single shots.' }
         ],
         path2: [
-            { name: 'Extended Scope', range: 3, damage: 0, fireRate: 0, price: 40 },
-            { name: 'High-Powered Lens', range: 5, damage: 2, fireRate: 0, price: 80 },
-            { name: 'Eagle Vision', range: 7, damage: 5, fireRate: 0, price: 150 }
+            { name: 'Extended Scope', range: 3, damage: 0, fireRate: 0, price: 40, description: 'Increases range to target enemies from farther away.' },
+            { name: 'High-Powered Lens', range: 5, damage: 2, fireRate: 0, price: 80, description: 'Improves range and adds slight damage boost.' },
+            { name: 'Eagle Vision', range: 7, damage: 5, fireRate: 0, price: 150, description: 'Maximizes range and damage for unparalleled precision.' }
         ],
         path3: [
-            { name: 'Armor Piercing Rounds', range: 0, damage: 3, fireRate: 0, price: 60 },
-            { name: 'Explosive Rounds', range: 0, damage: 6, fireRate: -0.5, price: 120 },
-            { name: 'Devastating Impact', range: 0, damage: 10, fireRate: -1, price: 250 }
+            { name: 'Armor Piercing Rounds', range: 0, damage: 3, fireRate: 0, price: 60, description: 'Increases damage to penetrate enemy armor.' },
+            { name: 'Explosive Rounds', range: 0, damage: 6, fireRate: -0.5, price: 120, description: 'Boosts damage with explosive effects for area impact.' },
+            { name: 'Devastating Impact', range: 0, damage: 10, fireRate: -1, price: 250, description: 'Maximizes damage for catastrophic effects on enemies.' }
         ],
         path4: [
-            { name: 'Quick Reload', range: 0, damage: 0, fireRate: 1, price: 30 },
-            { name: 'Advanced Mechanics', range: 0, damage: 1, fireRate: 2, price: 70 },
-            { name: 'Rapid Fire', range: 0, damage: 2, fireRate: 3, price: 150 }
+            { name: 'Quick Reload', range: 0, damage: 0, fireRate: 1, price: 30, description: 'Improves fire rate for quicker attacks.' },
+            { name: 'Advanced Mechanics', range: 0, damage: 1, fireRate: 2, price: 70, description: 'Enhances fire rate and damage for better efficiency.' },
+            { name: 'Rapid Fire', range: 0, damage: 2, fireRate: 3, price: 150, description: 'Maximizes fire rate and damage for rapid destruction.' }
         ]
     },
     MachineGun: {
         path1: [
-            { name: 'Increased Firepower', range: 0, damage: 1, fireRate: 0, price: 20 },
-            { name: 'Enhanced Ammunition', range: 0, damage: 2, fireRate: 0, price: 40 },
-            { name: 'Devastating Barrage', range: 0, damage: 3, fireRate: 0, price: 60 }
+            { name: 'Increased Firepower', range: 0, damage: 1, fireRate: 0, price: 20, description: 'Boosts damage for more effective attacks.' },
+            { name: 'Enhanced Ammunition', range: 0, damage: 2, fireRate: 0, price: 40, description: 'Further increases damage for tougher enemies.' },
+            { name: 'Devastating Barrage', range: 0, damage: 3, fireRate: 0, price: 60, description: 'Maximizes damage for overwhelming firepower.' }
         ],
         path2: [
-            { name: 'Extended Range', range: 2, damage: 0, fireRate: 0, price: 15 },
-            { name: 'Precision Targeting', range: 3, damage: 1, fireRate: 0, price: 30 },
-            { name: 'Sniper Precision', range: 4, damage: 2, fireRate: 0, price: 50 }
+            { name: 'Extended Range', range: 2, damage: 0, fireRate: 0, price: 15, description: 'Increases range to target enemies from farther away.' },
+            { name: 'Precision Targeting', range: 3, damage: 1, fireRate: 0, price: 30, description: 'Improves range and adds slight damage boost.' },
+            { name: 'Sniper Precision', range: 4, damage: 2, fireRate: 0, price: 50, description: 'Maximizes range and damage for long-distance precision.' }
         ],
         path3: [
-            { name: 'Rapid Fire', range: 0, damage: 0, fireRate: 1, price: 25 },
-            { name: 'Overclocked Mechanism', range: 0, damage: 0, fireRate: 2, price: 50 },
-            { name: 'Machine Fury', range: 0, damage: 0, fireRate: 3, price: 75 }
+            { name: 'Rapid Fire', range: 0, damage: 0, fireRate: 1, price: 25, description: 'Increases fire rate for faster attacks.' },
+            { name: 'Overclocked Mechanism', range: 0, damage: 0, fireRate: 2, price: 50, description: 'Further enhances fire rate for rapid attacks.' },
+            { name: 'Machine Fury', range: 0, damage: 0, fireRate: 3, price: 75, description: 'Maximizes fire rate for relentless firepower.' }
         ],
         path4: [
-            { name: 'Armor Piercing Rounds', range: 0, damage: 2, fireRate: 0, price: 30 },
-            { name: 'Explosive Rounds', range: 0, damage: 4, fireRate: -0.5, price: 60 },
-            { name: 'Shrapnel Storm', range: 0, damage: 6, fireRate: -1, price: 90 }
+            { name: 'Armor Piercing Rounds', range: 0, damage: 2, fireRate: 0, price: 30, description: 'Increases damage to penetrate enemy armor.' },
+            { name: 'Explosive Rounds', range: 0, damage: 4, fireRate: -0.5, price: 60, description: 'Boosts damage with explosive effects for area impact.' },
+            { name: 'Shrapnel Storm', range: 0, damage: 6, fireRate: -1, price: 90, description: 'Maximizes damage for devastating area effects.' }
         ]
     },
     SlowTower: {
         path1: [
-            { name: 'Frostbite', range: 0, damage: 0, fireRate: 0, price: 20, effect: { slow: 0.2 } },
-            { name: 'Chilling Aura', range: 1, damage: 0, fireRate: 0, price: 40, effect: { slow: 0.3 } },
-            { name: 'Arctic Blast', range: 2, damage: 0, fireRate: 0, price: 60, effect: { slow: 0.4 } }
+            { name: 'Frostbite', range: 0, damage: 0, fireRate: 0, price: 20, description: 'Slows down enemies significantly.' },
+            { name: 'Chilling Aura', range: 0, damage: 0, fireRate: 0, price: 40, description: 'Further slows down enemies in a larger area.' },
+            { name: 'Absolute Zero', range: 0, damage: 0, fireRate: 0, price: 60, description: 'Maximizes slow effect for all enemies in range.' }
         ],
         path2: [
-            { name: 'Icy Reach', range: 2, damage: 0, fireRate: 0, price: 25 },
-            { name: 'Frozen Domain', range: 3, damage: 0, fireRate: 0, price: 50 },
-            { name: 'Glacial Expansion', range: 4, damage: 0, fireRate: 0, price: 75 }
+            { name: 'Extended Range', range: 2, damage: 0, fireRate: 0, price: 15, description: 'Increases range to target enemies from farther away.' },
+            { name: 'Precision Targeting', range: 3, damage: 1, fireRate: 0, price: 30, description: 'Improves range and adds slight damage boost.' },
+            { name: 'Sniper Precision', range: 4, damage: 2, fireRate: 0, price: 50, description: 'Maximizes range and damage for long-distance precision.' }
         ],
         path3: [
-            { name: 'Shatter', range: 0, damage: 2, fireRate: 0, price: 30 },
-            { name: 'Fracture', range: 0, damage: 4, fireRate: 0, price: 60 },
-            { name: 'Icebreaker', range: 0, damage: 6, fireRate: 0, price: 90 }
+            { name: 'Rapid Fire', range: 0, damage: 0, fireRate: 1, price: 25, description: 'Increases fire ratefor faster attacks.' },
+            { name: 'Overclocked Mechanism', range: 0, damage: 0, fireRate: 2, price: 50, description: 'Further enhances fire rate for rapid attacks.' },
+            { name: 'Machine Fury', range: 0, damage: 0, fireRate: 3, price: 75, description: 'Maximizes fire rate for relentless firepower.' }
         ],
         path4: [
-            { name: 'Quick Freeze', range: 0, damage: 0, fireRate: 1, price: 20 },
-            { name: 'Deep Freeze', range: 0, damage: 0, fireRate: 2, price: 40 },
-            { name: 'Absolute Zero', range: 0, damage: 0, fireRate: 3, price: 60 }
-        ]
-    },
-    CannonTower: {
-        path1: [
-            { name: 'Explosive Shells', range: 0, damage: 5, fireRate: -0.5, price: 50 },
-            { name: 'Fragmentation Rounds', range: 1, damage: 10, fireRate: 0, price: 100 },
-            { name: 'Aftershock', range: 2, damage: 25, fireRate: -1, price: 200 }
-        ],
-        path2: [
-            { name: 'Extended Range', range: 3, damage: 0, fireRate: 0, price: 40 },
-            { name: 'Precision Targeting', range: 5, damage: 2, fireRate: 0, price: 80 },
-            { name: 'Sniper Precision', range: 7, damage: 5, fireRate: 0, price: 150 }
-        ],
-        path3: [
-            { name: 'Quick Reload', range: 0, damage: 0, fireRate: 1, price: 30 },
-            { name: 'Advanced Mechanics', range: 0, damage: 1, fireRate: 4, price: 70 },
-            { name: 'Rapid Fire', range: 0, damage: 2, fireRate: 10, price: 150 }
-        ],
-        path4: [
-            { name: 'Balanced Shells', range: 0, damage: 2, fireRate: 2, price: 40 },
-            { name: 'Huge Rounds', range: 0, damage: 4, fireRate: 0, price: 80 },
-            { name: 'Unstoppable Force', range: 0, damage: 6, fireRate: -1, price: 120 } //in the future make this one let the projectile pass through multiple enemies
+            { name: 'Armor Piercing Rounds', range: 0, damage: 2, fireRate: 0, price: 30, description: 'Increases damage to penetrate enemy armor.' },
+            { name: 'Explosive Rounds', range: 0, damage: 4, fireRate: -0.5, price: 60, description: 'Boosts damage with explosive effects for area impact.' },
+            { name: 'Shrapnel Storm', range: 0, damage: 6, fireRate: -1, price: 90, description: 'Maximizes damage for devastating area effects.' }
         ]
     },
     PoisonTower: {
         path1: [
-            { name: 'Toxic Burst', range: 0, damage: 0, fireRate: 3, price: 40, effect: { poison: 0.1 } },
-            { name: 'Venomous Spray', range: 1, damage: 0, fireRate: 2, price: 80, effect: { poison: 0.2 } },
-            { name: 'Noxious Cloud', range: 2, damage: 0, fireRate: 1, price: 120, effect: { poison: 0.3 } }
+            { name: 'Toxic Cloud', range: 0, damage: 0, fireRate: 0, price: 20, description: 'Inflicts poison damage over time to enemies.' },
+            { name: 'Venomous Mist', range: 0, damage: 0, fireRate: 0, price: 40, description: 'Further increases poison damage and area of effect.' },
+            { name: 'Noxious Gas', range: 0, damage: 0, fireRate: 0, price: 60, description: 'Maximizes poison damage for all enemies in range.' }
         ],
         path2: [
-            { name: 'Large Spray', range: 3, damage: 0, fireRate: 0, price: 25 },
-            { name: 'Fog Machine', range: 5, damage: 0, fireRate: 3, price: 60 },
-            { name: 'Acid Storm', range: 7, damage: 0, fireRate: 3, price: 100 }
+            { name: 'Extended Range', range: 2, damage: 0, fireRate: 0, price: 15, description: 'Increases range to target enemies from farther away.' },
+            { name: 'Precision Targeting', range: 3, damage: 1, fireRate: 0, price: 30, description: 'Improves range and adds slight damage boost.' },
+            { name: 'Sniper Precision', range: 4, damage: 2, fireRate: 0, price: 50, description: 'Maximizes range and damage for long-distance precision.' }
         ],
         path3: [
-            { name: 'Coated Rounds', range: 0, damage: 2, fireRate: 0, price: 30 },
-            { name: 'Corrosive Rounds', range: 0, damage: 4, fireRate: 0, price: 60 },
-            { name: 'Pure Poison', range: 0, damage: 10, fireRate: 0, price: 90 }
+            { name: 'Rapid Fire', range: 0, damage: 0, fireRate: 1, price: 25, description: 'Increases fire rate for faster attacks.' },
+            { name: 'Overclocked Mechanism', range: 0, damage: 0, fireRate: 2, price: 50, description: 'Further enhances fire rate for rapid attacks.' },
+            { name: 'Machine Fury', range: 0, damage: 0, fireRate: 3, price: 75, description: 'Maximizes fire rate for relentless firepower.' }
         ],
         path4: [
-            { name: 'Auto Chambering', range: 0, damage: 0, fireRate: 5, price: 20 },
-            { name: 'Reusable Gas', range: 0, damage: 0, fireRate: 7, price: 40 },
-            { name: 'Gas Chamber', range: 10, damage: 0, fireRate: 10, price: 90 }
-        ]
-    },
-    MoneyTree: {
-        path1: [
-            { name: 'Golden Leaves', range: 0, damage: 0, fireRate: 0, moneyRate: 2, price: 500 },
-            { name: 'Wealthy Roots', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 1000 },
-            { name: 'Fortune Blossom', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 2000 }
-        ],
-        path2: [
-            { name: 'Rich Soil', range: 0, damage: 0, fireRate: 0, moneyRate: 2, price: 500 },
-            { name: 'Fertile Ground', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 1000 },
-            { name: 'Abundant Harvest', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 2000 }
-        ],
-        path3: [
-            { name: 'Lucky Charm', range: 0, damage: 0, fireRate: 0, moneyRate: 2, price: 500 },
-            { name: 'Fortune Cookie', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 1000 },
-            { name: 'Prosperity Seed', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 2000 }
-        ],
-        path4: [
-            { name: 'Money Magnet', range: 0, damage: 0, fireRate: 0, moneyRate: 2, price: 500 },
-            { name: 'Wealthy Aura', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 1000 },
-            { name: 'Treasure Grove', range: 0, damage: 0, fireRate: 0, moneyRate: 4, price: 2000 }
+            { name: 'Armor Piercing Rounds', range: 0, damage: 2, fireRate: 0, price: 30, description: 'Increases damage to penetrate enemy armor.' },
+            { name: 'Explosive Rounds', range: 0, damage: 4, fireRate: -0.5, price: 60, description: 'Boosts damage with explosive effects for area impact.' },
+            { name: 'Shrapnel Storm', range: 0, damage: 6, fireRate: -1, price: 90, description: 'Maximizes damage for devastating area effects.' }
         ]
     }
 };
@@ -277,19 +263,20 @@ class Enemy {
     addStatus(status, customDuration = null, strength = 1) {
         // Check if the status already exists
         const existingStatusIndex = this.statuses.findIndex(s => s.type === status.type);
-
+    
         if (existingStatusIndex !== -1) {
             const existingStatus = this.statuses[existingStatusIndex];
-
+    
             // Compare strengths
             if (strength > existingStatus.strength) {
-
                 // Replace the existing status with the new one
                 this.statuses[existingStatusIndex] = new Status(
                     status.type,
                     customDuration !== null ? customDuration : status.duration,
                     status.effect,
-                    strength
+                    strength,
+                    status.tickEffect, // Pass tickEffect
+                    status.tickInterval // Pass tickInterval
                 );
             } else if (strength === existingStatus.strength) {
                 // Compare durations if strengths are equal
@@ -300,36 +287,49 @@ class Enemy {
                         status.type,
                         newDuration,
                         status.effect,
-                        strength
+                        strength,
+                        status.tickEffect, // Pass tickEffect
+                        status.tickInterval // Pass tickInterval
                     );
                 }
             }
-            // If the new status is weaker or has a shorter duration, discard it
             return;
         }
-
+    
         // If the status doesn't exist, add it
-        const clonedStatus = new Status( //This creates a clone of the status object to prevent it from being modified globally, removing this functionality could cause issues with the game since the duration will be affected globally by all enemies without cloning
+        const clonedStatus = new Status(
             status.type,
             customDuration !== null ? customDuration : status.duration,
             status.effect,
-            strength
+            strength,
+            status.tickEffect, // Pass tickEffect
+            status.tickInterval // Pass tickInterval
         );
         this.statuses.push(clonedStatus);
     }
 
     // This function is used to update the enemy's statuses, it applies the status effects and decrements their duration
-    updateStatuses() {
+    updateStatuses(currentTick) {
         // Reset effective stats to original stats before applying statuses
         this.effectiveStats.speed = this.speed;
         this.effectiveStats.health = this.health;
         this.effectiveStats.armor = 0; // Reset armor or other stats
-
+    
         this.statuses = this.statuses.filter(status => {
-            status.apply(this); // Apply the status effect
+            status.apply(this); // Apply the instant effect
+            status.applyTick(this, currentTick); // Apply the tick effect (DoT)
             status.decrementDuration(); // Decrease the duration
             return !status.isExpired(); // Keep only active statuses
         });
+        
+        if (this.health <= 0) {
+            const user = users.get(this.userId);
+            if (user) {
+                user.money += this.maxHealth; // Reward money
+                user.enemies.splice(user.enemies.indexOf(this), 1); // Remove enemy
+                enemyPool.releaseEnemy(this); // Return to pool
+            }
+        }
     }
 
 
@@ -421,7 +421,6 @@ class Enemy {
 
     // This function is used to move the enemy along the path, it checks if the enemy has reached the next point and updates its position accordingly
     move() {
-        this.updateStatuses(); // Update statuses before moving
 
         // Check if the enemy has reached the current target point
         if (this.nextX === undefined || this.nextY === undefined || (this.x === this.nextX && this.y === this.nextY)) {
@@ -555,7 +554,7 @@ class Tower {
                 this.damage = 2;
                 this.fireRate = 2;
                 this.name = 'Basic';
-                this.price = 10;
+                this.price = 100;
                 break;
             case 'Sniper':
                 this.size = 10;
@@ -564,7 +563,7 @@ class Tower {
                 this.damage = 10;
                 this.fireRate = 0.5;
                 this.name = 'Sniper';
-                this.price = 20;
+                this.price = 200;
                 break;
             case 'MachineGun':
                 this.size = 10;
@@ -573,7 +572,7 @@ class Tower {
                 this.damage = 1;
                 this.fireRate = 10;
                 this.name = 'MachineGun';
-                this.price = 15;
+                this.price = 150;
                 break;
             case 'SlowTower':
                 this.size = 10;
@@ -583,7 +582,7 @@ class Tower {
                 this.fireRate = 2;
                 this.name = 'SlowTower';
                 this.inflictStatuses.push(slowStatus);
-                this.price = 15;
+                this.price = 150;
                 break;
             case 'PoisonTower':
                 this.size = 10;
@@ -603,7 +602,7 @@ class Tower {
                 this.damage = 5;
                 this.fireRate = 1;
                 this.name = 'CannonTower';
-                this.price = 20;
+                this.price = 200;
                 break;
             case 'MoneyTree':
                 this.size = 10;
@@ -613,9 +612,8 @@ class Tower {
                 this.fireRate = 0;
                 this.moneyRate = 1;
                 this.name = 'MoneyTree';
-                this.price = 250;
+                this.price = 2500;
                 break;
-
         }
 
         // This section apllies upgrades, from the upgradePaths object, to the tower based on the chosen upgrade path and tower type
@@ -639,6 +637,7 @@ class Tower {
         this.damageCount = 0;
         this.lastShotTime = 0; //Used to determine when the tower can shoot again
         this.lastMoneyTime = 0;
+        this.sellPrice = Math.floor(this.price * 0.8); // Sell price is 80% of the original price
     }
 
     // This function is used to handle when a user chooses an upgrade path, it checks if the path has already been chosen and allows the user to choose the path if it hasn't been chosen yet
@@ -842,11 +841,14 @@ class Tower {
                 this.y,
                 enemyInstance.x,
                 enemyInstance.y,
-                1, // Speed of the projectile
+                0.1, // Speed of the projectile
                 this.effectiveStats.damage, // Damage of the projectile
-                'normal', // Type of the projectile
-                'red', // Color of the projectile
-                this.userId // User ID associated with the projectile
+                'AoE', // Type of the projectile
+                'yellow', // Color of the projectile
+                this.userId, // User ID associated with the projectile
+                this.pierce || 1, // Pierce value of the projectile
+                10, // Size of the projectile
+                this.inflictStatuses // Statuses to be applied by the projectile
             );
 
             if (projectile) {
@@ -868,12 +870,12 @@ class Tower {
 // Projectile class
 // This class represents a projectile that can be fired by towers
 class Projectile {
-    constructor(presetProjectile, userId, x, y, targetX, targetY, speed, damage, projectileType, color, size, pierce) {
+    constructor(userId, x, y, targetX, targetY, speed, damage, projectileType, color, size, pierce) {
         this.initialize(x, y, targetX, targetY, speed, damage, projectileType, color, userId, size, pierce);
     }
 
-    // This function initializes the projectile with the given parameters
-    initialize(x, y, targetX, targetY, speed, damage, projectileType, color, userId, size, pierce) {
+    // This function initializes the projectile with the given parameters and updates its stats based on the projectile type
+    initialize(x, y, targetX, targetY, speed, damage, projectileType, color, userId, size, pierce, statuses) {
         this.x = x;
         this.y = y;
         this.lastX = x; // Store the last X position
@@ -891,6 +893,32 @@ class Projectile {
         this.directionX = null; // Reset direction vector for movement
         this.directionY = null; // Reset direction vector for movement
         this.noHitList = []; // Reset the list of enemies that the projectile has already hit
+
+        // Update stats based on projectile type
+        switch (this.projectileType) {
+            case 'normal':
+                this.special = 'none';
+                break;
+            case 'AoE':
+                this.special = 'AoE';
+                break;
+            case 'piercing':
+                this.special = 'none';
+                break;
+            case 'poison':
+                this.special = 'none';
+                break;
+            case 'slow':
+                this.special = 'none';
+                break;
+            case 'fast':
+                this.special = 'none';
+                break;
+            default:
+                this.special = 'none'; // Default to 'none' if no valid type is provided
+                break;
+        }
+        this.statuses = statuses;
     }
 
     // This function is used to reset the projectile's properties to their default values so it can be returned to the projectile pool to be reused later
@@ -937,28 +965,52 @@ class Projectile {
 
         // Check for collisions along the path with the closest enemy
         if (closestEnemy) {
-            const projectileRadius = this.size / 2;
-
             const distanceToPath = this.distanceToLineSegment(
                 this.x, this.y, newX, newY, closestEnemy.x, closestEnemy.y
             ); // Calculate distance from the closest enemy to the raycast line
 
-            if (distanceToPath <= projectileRadius) {
-                if (!this.noHitList.includes(closestEnemy)) {
-                    this.noHitList.push(closestEnemy); // Prevent multiple hits
-                    closestEnemy.health -= this.damage; // Deal damage
-
-                    if (closestEnemy.health <= 0) {
-                        user.money += closestEnemy.maxHealth; // Reward money
-                        user.enemies.splice(user.enemies.indexOf(closestEnemy), 1); // Remove enemy
-                        enemyPool.releaseEnemy(closestEnemy); // Return to pool
-                    }
-
-                    // Handle piercing
-                    this.pierce--;
-                    if (this.pierce <= 0) {
-                        this.reset();
-                        return;
+            if (distanceToPath <= 1) {
+                if (this.special === 'AoE') {
+                    this.AoESize = this.size * 2; // AoE radius
+                    const enemiesInRange = user.enemies.filter(enemy => {
+                        const distanceToEnemy = Math.sqrt((enemy.x - this.x) ** 2 + (enemy.y - this.y) ** 2);
+                        return distanceToEnemy <= this.AoESize;
+                    });
+                    enemiesInRange.forEach(enemy => {
+                        if (!this.noHitList.includes(enemy)) {
+                            this.noHitList.push(enemy); // Prevent multiple hits
+                            enemy.health -= this.damage; // Deal damage
+                            this.statuses.forEach(status => {
+                                enemy.addStatus(status); // Apply statuses to the enemy
+                            });
+    
+                            if (enemy.health <= 0) {
+                                user.money += enemy.maxHealth; // Reward money
+                                user.enemies.splice(user.enemies.indexOf(enemy), 1); // Remove enemy
+                                enemyPool.releaseEnemy(enemy); // Return to pool
+                            }
+                        }
+                    });
+                } else {
+                    if (!this.noHitList.includes(closestEnemy)) {
+                        this.noHitList.push(closestEnemy); // Prevent multiple hits
+                        closestEnemy.health -= this.damage; // Deal damage
+                        this.statuses.forEach(status => {
+                            closestEnemy.addStatus(status); // Apply statuses to the enemy
+                        });
+    
+                        if (closestEnemy.health <= 0) {
+                            user.money += closestEnemy.maxHealth; // Reward money
+                            user.enemies.splice(user.enemies.indexOf(closestEnemy), 1); // Remove enemy
+                            enemyPool.releaseEnemy(closestEnemy); // Return to pool
+                        }
+    
+                        // Handle piercing
+                        this.pierce--;
+                        if (this.pierce <= 0) {
+                            this.reset();
+                            return;
+                        }
                     }
                 }
             }
@@ -1003,7 +1055,7 @@ class ProjectilePool {
     }
 
     // This function is used to get a projectile from the pool, it checks if there are any projectiles available in the pool and returns one if there is, otherwise it returns null
-    getProjectile(x, y, targetX, targetY, speed, damage, type, color, userId, pierce) {
+    getProjectile(x, y, targetX, targetY, speed, damage, type, color, userId, pierce, size, statuses) {
         if (this.pool.length > 0) {
             const projectile = this.pool.pop();
             projectile.x = x;
@@ -1016,8 +1068,9 @@ class ProjectilePool {
             projectile.color = color;
             projectile.userId = userId;
             projectile.pierce = pierce || 5; // Default pierce if not provided
+            projectile.size = size || 100; // Default size if not provided
             this.activeProjectiles.add(projectile); // Track the active projectile
-            projectile.initialize(x, y, targetX, targetY, speed, damage, type, color, userId, 5); // Reinitialize the projectile
+            projectile.initialize(x, y, targetX, targetY, speed, damage, type, color, userId, size, 5, statuses); // Reinitialize the projectile
             return projectile;
         } else {
             console.warn('Projectile pool is empty! Consider increasing the pool size.');
@@ -1049,27 +1102,40 @@ class ProjectilePool {
 //  SSSSSSSSS       TTT      AAA   AAA      TTT       UUUUUUU    SSSSSSSSS    EEEEEEEEEE   SSSSSSSSS 
 // The Status class is used to create the status effects that can be applied to enemies and towers, it contains the properties and methods for the status effects
 class Status {
-    constructor(type, duration, effect, strength = 1) {
+    constructor(type, duration, effect, strength = 1, tickEffect, tickInterval) {
+        // console.log(type, duration, effect, strength, tickEffect, tickInterval);
+        
         this.type = type; // e.g., 'slow', 'boost', 'poison'
         this.duration = duration; // Duration in ticks
-        this.effect = effect; // Function to apply the effect
+        this.effect = effect; // Function to apply the effect instantly
         this.strength = strength; // Strength of the effect
+        this.tickEffect = tickEffect; // Function to apply the effect over time (DoT)
+        this.tickInterval = tickInterval || 1; // Interval in ticks for applying the tickEffect
+        this.lastTick = 0; // Tracks the last tick when the tickEffect was applied
     }
 
-    // This function is used to apply the status effect to the target, it takes the target's effective stats and applies the effect to them
+    // This function is used to apply the status effect to the target instantly
     apply(target) {
-        // Apply the effect to the target's effective stats
         if (this.effect) {
             this.effect(target.effectiveStats, this.strength);
         }
     }
 
-    // This function is used to decrement the duration of the status effect, it reduces the duration by 1 tick
+    // This function is used to apply the tick effect (DoT) to the target
+    applyTick(target, currentTick) {
+        if (this.tickEffect && currentTick - this.lastTick >= this.tickInterval) {
+            this.tickEffect(target, this.strength);
+            
+            this.lastTick = currentTick; // Update the last tick when the effect was applied
+        }
+    }
+
+    // This function is used to decrement the duration of the status effect
     decrementDuration() {
         this.duration--; // Reduce the duration by 1 tick
     }
 
-    // This function is used to check if the status effect has expired, it returns true if the duration is less than or equal to 0
+    // This function is used to check if the status effect has expired
     isExpired() {
         return this.duration <= 0; // Check if the status has expired
     }
@@ -1082,7 +1148,9 @@ const slowStatus = new Status(
     100, // Default duration in ticks
     (effectiveStats, strength) => {
         effectiveStats.speed *= (0.5 / strength);
-    }
+    },
+    1
+
 );
 const boostStatus = new Status(
     'boost',
@@ -1094,11 +1162,12 @@ const boostStatus = new Status(
 const poisonStatus = new Status(
     'poison',
     100, // Default duration in ticks
-    (target, strength) => {
-        // Reduce health directly on the target
-        target.health -= strength;
+    null,
+    1, // Strength of the poison effect
+    (effectiveStats, strength) => {
+        effectiveStats.health -= strength; // Apply poison damage over time
     },
-    1 // Default strength
+    10 // Tick interval in ticks
 );
 
 //   GGGGGGG     RRRRRRRRR    IIIIIIIIII   DDDDDDDDD
@@ -1178,11 +1247,11 @@ function connection(socket, io) {
             waveQueue: [],
             sectionQueue: [],
             health: 100,
-            money: 50,
+            money: 150,
             currentWave: -1,
             gameIsRunning: true,
             gameOver: false,
-            settings: { programBlocks: false },
+            settings: { programBlocks: false, showTips: true },
             socket: socket
         });
     } else {
@@ -1208,18 +1277,22 @@ function connection(socket, io) {
     // This function handles the placement of a tower, it checks if the placement is valid and adds the tower to the user's towers array
     socket.on('towerPlace', placementInformation => {
         let user = users.get(socket.id);
+        let towerPrice = new Tower(placementInformation.tower, user.id, {}, 0, 0).price;
         if (user) {
-            let x = Math.floor(placementInformation.x);
-            let y = Math.floor(placementInformation.y);
-            if (!grid[y][x].hasPath && !user.towers.find(tower => tower.x === x && tower.y === y)) {
-                user.towers.push(new Tower(placementInformation.tower, user.id, {}, y, x));
+            if (user.money >= towerPrice) {
+                user.money -= towerPrice; // Deduct the cost of the tower from the user's money
+                let x = Math.floor(placementInformation.x);
+                let y = Math.floor(placementInformation.y);
+                if (!grid[y][x].hasPath && !user.towers.find(tower => tower.x === x && tower.y === y)) {
+                    user.towers.push(new Tower(placementInformation.tower, user.id, {}, y, x));
 
-                socket.emit('towerSelected', {
-                    tower: user.towers[user.towers.length - 1],
-                    upgrades: upgradePaths[user.towers[user.towers.length - 1].name],
-                    settings: user.settings,
-                    functions: 'test'
-                });
+                    socket.emit('towerSelected', {
+                        tower: user.towers[user.towers.length - 1],
+                        upgrades: upgradePaths[user.towers[user.towers.length - 1].name],
+                        settings: user.settings,
+                        functions: 'test'
+                    });
+                }
             }
         }
     });
@@ -1396,14 +1469,22 @@ function connection(socket, io) {
 
     // This handles sending the client a list of towers that can be placed, it sends the list of towers to the client
     socket.on('getTowerList', () => {
+        let sampleBasic = new Tower('Basic', socket.id, {}, 0, 0);
+        let sampleSniper = new Tower('Sniper', socket.id, {}, 0, 0);
+        let sampleMachineGun = new Tower('MachineGun', socket.id, {}, 0, 0);
+        let sampleSlowTower = new Tower('SlowTower', socket.id, {}, 0, 0);
+        // let sampleCannonTower = new Tower('CannonTower', socket.id, {}, 0, 0);
+        let samplePoisonTower = new Tower('PoisonTower', socket.id, {}, 0, 0);
+        // let sampleMoneyTree = new Tower('MoneyTree', socket.id, {}, 0, 0);
+
         const towerTypes = [
-            { name: 'Basic', price: 10, range: 4, damage: 2, fireRate: 2 },
-            { name: 'Sniper', price: 20, range: 8, damage: 10, fireRate: 0.5 },
-            { name: 'MachineGun', price: 15, range: 3, damage: 1, fireRate: 10 },
-            { name: 'SlowTower', price: 15, range: 4, damage: 0, fireRate: 2 },
-            { name: 'CannonTower', price: 20, range: 5, damage: 5, fireRate: 1 },
-            { name: 'PoisonTower', price: 20, range: 4, damage: 0, fireRate: 5 },
-            { name: 'MoneyTree', price: 250, range: 0, damage: 0, fireRate: 0, moneyRate: 1 }
+            { name: 'Basic', price: sampleBasic.price, range: sampleBasic.range, damage: sampleBasic.damage, fireRate: sampleBasic.fireRate },
+            { name: 'Sniper', price: sampleSniper.price, range: sampleSniper.range, damage: sampleSniper.damage, fireRate: sampleSniper.fireRate },
+            { name: 'MachineGun', price: sampleMachineGun.price, range: sampleMachineGun.range, damage: sampleMachineGun.damage, fireRate: sampleMachineGun.fireRate },
+            { name: 'SlowTower', price: sampleSlowTower.price, range: sampleSlowTower.range, damage: sampleSlowTower.damage, fireRate: sampleSlowTower.fireRate },
+            // { name: 'CannonTower', price: sampleCannonTower.price, range: sampleCannonTower.range, damage: sampleCannonTower.damage, fireRate: sampleCannonTower.fireRate },
+            { name: 'PoisonTower', price: samplePoisonTower.price, range: samplePoisonTower.range, damage: samplePoisonTower.damage, fireRate: samplePoisonTower.fireRate }
+            // { name: 'MoneyTree', price: sampleMoneyTree.price, range: sampleMoneyTree.range, damage: sampleMoneyTree.damage, fireRate: sampleMoneyTree.fireRate, moneyRate: sampleMoneyTree.moneyRate }
         ];
         socket.emit('towerList', towerTypes);
     });
@@ -1431,55 +1512,33 @@ function connection(socket, io) {
         if (user) {
             const tower = user.towers[towerIndex];
             if (tower) {
-                const primaryMaxUpgradeLevel = 3; // Maximum level for the primary path
-                const secondaryMaxUpgradeLevel = 2; // Maximum level for secondary paths
-
-                // Check if any path has already reached tier 3
-                const hasTier3Upgrade = tower.upgradePath.some(level => level >= primaryMaxUpgradeLevel);
-
-                // Check if two paths have already been picked
-                const pickedPaths = tower.upgradePath.filter(level => level > 0).length;
-                if (pickedPaths >= 2 && tower.upgradePath[pathIndex] === 0) {
-                    socket.emit('errorMessage', `Path ${pathIndex + 1} is not available because two paths have already been picked.`);
+                const maxUpgradeLevel = 3; // Maximum level for any path
+    
+                // Ensure the path index is valid (only 0 or 1 for two paths)
+                if (pathIndex < 0 || pathIndex > 1) {
+                    socket.emit('errorMessage', `Invalid path index: ${pathIndex}`);
                     return;
                 }
-
-                // If trying to upgrade a path to tier 2 while another path is at tier 3
-                if (hasTier3Upgrade && tower.upgradePath[pathIndex] >= secondaryMaxUpgradeLevel) {
-                    socket.emit('errorMessage', `Max upgrade reached for path ${pathIndex + 1}.`);
-                    return;
-                }
-
-                // Automatically assign the path if it's the first upgrade
-                if (tower.upgradePath[pathIndex] === 0) {
-                    console.log(`Automatically choosing path ${pathIndex + 1} for tower ${towerIndex}.`);
-                }
-
-                const currentLevel = tower.upgradePath[pathIndex];
-                if (currentLevel < primaryMaxUpgradeLevel) {
-                    const upgradeCost = tower.price;
-                    if (user.money >= upgradeCost) {
-                        user.money -= upgradeCost;
-                        tower.upgradePath[pathIndex]++;
-                        tower.upgradeLevel++;
-                        tower.updateStats(tower.name);
-                        console.log(`Tower upgraded to level ${tower.upgradePath[pathIndex]} on path ${pathIndex + 1}`);
-
-                        // If the tower reaches tier 3 on this path, lock all other paths to tier 2
-                        if (tower.upgradePath[pathIndex] === primaryMaxUpgradeLevel) {
-                            tower.upgradePath.forEach((level, index) => {
-                                if (index !== pathIndex && level > secondaryMaxUpgradeLevel) {
-                                    tower.upgradePath[index] = secondaryMaxUpgradeLevel;
-                                    console.log(`Path ${index + 1} limited to tier ${secondaryMaxUpgradeLevel}`);
-                                }
-                            });
-                        }
-                        socket.emit('towerUpgraded', tower);
-                    } else {
-                        socket.emit('errorMessage', 'Not enough money to upgrade.');
-                    }
-                } else {
+    
+                // Check if the selected path is already at max level
+                if (tower.upgradePath[pathIndex] >= maxUpgradeLevel) {
                     socket.emit('errorMessage', `Path ${pathIndex + 1} is already at max level.`);
+                    return;
+                }
+    
+                // Calculate the upgrade cost
+                const upgradeCost = upgradePaths[tower.name][`path${pathIndex + 1}`][tower.upgradePath[pathIndex]].price;
+                if (user.money >= upgradeCost) {
+                    user.money -= upgradeCost; // Deduct the cost
+                    tower.upgradePath[pathIndex]++; // Increment the level for the selected path
+                    tower.upgradeLevel++; // Increment the overall upgrade level
+                    tower.updateStats(tower.name); // Update the tower's stats
+                    console.log(`Tower upgraded to level ${tower.upgradePath[pathIndex]} on path ${pathIndex + 1}`);
+    
+                    socket.emit('towerUpgraded', tower); // Notify the client
+                } else {
+                    console.log('Not enough money to upgrade the tower.');
+                    socket.emit('errorMessage', 'Not enough money to upgrade.');
                 }
             }
         }
@@ -1491,7 +1550,7 @@ function connection(socket, io) {
         if (user) {
             const tower = user.towers[towerIndex];
             if (tower) {
-                user.money += tower.price;
+                user.money += tower.sellPrice;
                 user.towers.splice(towerIndex, 1);
             }
             user.towers.forEach((tower, index) => {
@@ -1567,8 +1626,11 @@ function connection(socket, io) {
     socket.on('startWave', waveIndex => {
         let user = users.get(socket.id);
         if (user && (waveIndex || waveIndex === 0)) {
-            const waveCopy = JSON.parse(JSON.stringify(waves[waveIndex]));
+            const waveCopy = JSON.parse(JSON.stringify(waves[waveIndex].enemies));
             user.waveQueue.push({ wave: waveCopy, userId: socket.id });
+            if (waves[waveIndex].tip) {
+                socket.emit('waveTip', waves[waveIndex].tip);
+            }
         }
     });
 
@@ -1578,9 +1640,11 @@ function connection(socket, io) {
         if (user) {
             if (user.gameOver || !user.gameIsRunning || user.currentWave >= waves.length - 1 || user.waveQueue.length > 0 || user.sectionQueue.length > 0 || user.enemies.length > 0) return;
             user.currentWave++;
-            const waveCopy = JSON.parse(JSON.stringify(waves[user.currentWave]));
+            const waveCopy = JSON.parse(JSON.stringify(waves[user.currentWave].enemies));
             user.waveQueue.push({ wave: waveCopy, userId });
-            socket.emit('tipData', { tip: 'Welcome to the game! Use your towers wisely to defend against the waves of enemies!' });
+            if (waves[user.currentWave].tip && user.settings.showTips) {
+                socket.emit('tipData', waves[user.currentWave].tip);
+            }
         }
     })
 
@@ -1670,7 +1734,10 @@ let gameLoop = setInterval(() => {
 
         // Update enemies
         for (let i = enemies.length - 1; i >= 0; i--) {
-            enemies[i].move();
+            enemies[i].updateStatuses(ticks); // Update statuses for each enemy
+            if (enemies[i]) {
+                enemies[i].move();
+            }
         }
 
         // Update towers
@@ -1705,6 +1772,9 @@ let gameLoop = setInterval(() => {
             let projectile = user.projectiles[i];
             if (projectile) {
                 if (projectile.lifeTime > 0) {
+                    if (projectile.AoESize > 0) {
+                        projectile.AoESize--;
+                    }
                     projectile.move();
                 } else {
                     projectile.reset();
